@@ -10,9 +10,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: configure
-      run: ./configure
-    - name: configure
       run: sudo apt-get install qmake
+    - name: configure
+      run: ./configure
     - name: make
       run: make
     - name: ls
