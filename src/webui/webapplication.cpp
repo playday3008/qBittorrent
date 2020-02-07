@@ -267,12 +267,10 @@ void WebApplication::doProcessRequest()
     try {
         const QVariant result = controller->run(action, m_params, data);
         switch (result.userType()) {
-        case QMetaType::QString:
-            print(result.toString(), Http::CONTENT_TYPE_TXT);
-            break;
         case QMetaType::QJsonDocument:
             print(result.toJsonDocument().toJson(QJsonDocument::Compact), Http::CONTENT_TYPE_JSON);
             break;
+        case QMetaType::QString:
         default:
             print(result.toString(), Http::CONTENT_TYPE_TXT);
             break;
@@ -339,6 +337,7 @@ void WebApplication::configure()
 
     m_isClickjackingProtectionEnabled = pref->isWebUiClickjackingProtectionEnabled();
     m_isCSRFProtectionEnabled = pref->isWebUiCSRFProtectionEnabled();
+    m_isSecureCookieEnabled = pref->isWebUiSecureCookieEnabled();
     m_isHostHeaderValidationEnabled = pref->isWebUIHostHeaderValidationEnabled();
     m_isHttpsEnabled = pref->isWebUiHttpsEnabled();
 
@@ -537,6 +536,7 @@ void WebApplication::sessionStart()
 
     QNetworkCookie cookie(C_SID, m_currentSession->id().toUtf8());
     cookie.setHttpOnly(true);
+    cookie.setSecure(m_isSecureCookieEnabled && m_isHttpsEnabled);
     cookie.setPath(QLatin1String("/"));
     QByteArray cookieRawForm = cookie.toRawForm();
     if (m_isCSRFProtectionEnabled)

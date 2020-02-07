@@ -678,7 +678,7 @@ void MainWindow::displayRSSTab(bool enable)
 #endif
         }
     }
-    else if (m_rssWidget) {
+    else {
         delete m_rssWidget;
     }
 }
@@ -714,7 +714,7 @@ void MainWindow::displaySearchTab(bool enable)
                 tr("Search"));
         }
     }
-    else if (m_searchWidget) {
+    else {
         delete m_searchWidget;
     }
 }
@@ -1170,8 +1170,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
     }
 
     // abort search if any
-    if (m_searchWidget)
-        delete m_searchWidget;
+    delete m_searchWidget;
 
     hide();
 #ifndef Q_OS_MACOS
@@ -1775,6 +1774,7 @@ void MainWindow::on_actionSearchWidget_triggered()
 #ifdef Q_OS_WIN
             const QMessageBox::StandardButton buttonPressed = QMessageBox::question(this, tr("Old Python Runtime")
                 , tr("Your Python version (%1) is outdated. Minimum requirement: 2.7.9 / 3.3.0.\nDo you want to install a newer version now?")
+                    .arg(pyInfo.version)
                 , (QMessageBox::Yes | QMessageBox::No), QMessageBox::Yes);
             if (buttonPressed == QMessageBox::Yes)
                 installPython();
@@ -1874,7 +1874,7 @@ void MainWindow::on_actionExecutionLogs_triggered(bool checked)
         m_tabs->setTabIcon(indexTab, UIThemeManager::instance()->getIcon("view-calendar-journal"));
 #endif
     }
-    else if (m_executionLog) {
+    else {
         delete m_executionLog;
     }
 
@@ -2011,9 +2011,9 @@ void MainWindow::installPython()
     setCursor(QCursor(Qt::WaitCursor));
     // Download python
 #ifdef QBT_APP_64BIT
-    const QString installerURL = "https://www.python.org/ftp/python/3.7.4/python-3.7.4-amd64.exe";
+    const QString installerURL = "https://www.python.org/ftp/python/3.8.1/python-3.8.1-amd64.exe";
 #else
-    const QString installerURL = "https://www.python.org/ftp/python/3.7.4/python-3.7.4.exe";
+    const QString installerURL = "https://www.python.org/ftp/python/3.8.1/python-3.8.1.exe";
 #endif
     Net::DownloadManager::instance()->download(
                 Net::DownloadRequest(installerURL).saveToFile(true)

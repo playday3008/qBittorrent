@@ -239,6 +239,7 @@ void AppController::preferencesAction()
     // Security
     data["web_ui_clickjacking_protection_enabled"] = pref->isWebUiClickjackingProtectionEnabled();
     data["web_ui_csrf_protection_enabled"] = pref->isWebUiCSRFProtectionEnabled();
+    data["web_ui_secure_cookie_enabled"] = pref->isWebUiSecureCookieEnabled();
     data["web_ui_host_header_validation_enabled"] = pref->isWebUIHostHeaderValidationEnabled();
     // Update my dynamic domain name
     data["dyndns_enabled"] = pref->isDynDNSEnabled();
@@ -259,8 +260,6 @@ void AppController::preferencesAction()
     data["current_network_interface"] = session->networkInterface();
     // Current network interface address
     data["current_interface_address"] = BitTorrent::Session::instance()->networkInterfaceAddress();
-    // Listen on IPv6 address
-    data["listen_on_ipv6_address"] = session->isIPv6Enabled();
     // Save resume data interval
     data["save_resume_data_interval"] = static_cast<double>(session->saveResumeDataInterval());
     // Recheck completed torrents
@@ -282,6 +281,8 @@ void AppController::preferencesAction()
     data["enable_os_cache"] = session->useOSCache();
     // Coalesce reads & writes
     data["enable_coalesce_read_write"] = session->isCoalesceReadWriteEnabled();
+    // Piece Extent Affinity
+    data["enable_piece_extent_affinity"] = session->usePieceExtentAffinity();
     // Suggest mode
     data["enable_upload_suggestions"] = session->isSuggestModeEnabled();
     // Send buffer watermark
@@ -310,13 +311,15 @@ void AppController::preferencesAction()
     data["announce_to_all_trackers"] = session->announceToAllTrackers();
     data["announce_to_all_tiers"] = session->announceToAllTiers();
     data["announce_ip"] = session->announceIP();
+    // Stop tracker timeout
+    data["stop_tracker_timeout"] = session->stopTrackerTimeout();
 
     setResult(data);
 }
 
 void AppController::setPreferencesAction()
 {
-    checkParams({"json"});
+    requireParams({"json"});
 
     Preferences *const pref = Preferences::instance();
     auto session = BitTorrent::Session::instance();
@@ -610,6 +613,8 @@ void AppController::setPreferencesAction()
         pref->setWebUiClickjackingProtectionEnabled(it.value().toBool());
     if (hasKey("web_ui_csrf_protection_enabled"))
         pref->setWebUiCSRFProtectionEnabled(it.value().toBool());
+    if (hasKey("web_ui_secure_cookie_enabled"))
+        pref->setWebUiSecureCookieEnabled(it.value().toBool());
     if (hasKey("web_ui_host_header_validation_enabled"))
         pref->setWebUIHostHeaderValidationEnabled(it.value().toBool());
     // Update my dynamic domain name
@@ -646,17 +651,14 @@ void AppController::setPreferencesAction()
         });
         const QString ifaceName = (ifacesIter != ifaces.cend()) ? ifacesIter->humanReadableName() : QString {};
 
-	    session->setNetworkInterface(ifaceValue);
-	    session->setNetworkInterfaceName(ifaceName);
+        session->setNetworkInterface(ifaceValue);
+        session->setNetworkInterfaceName(ifaceName);
     }
     // Current network interface address
     if (hasKey("current_interface_address")) {
         const QHostAddress ifaceAddress {it.value().toString().trimmed()};
         session->setNetworkInterfaceAddress(ifaceAddress.isNull() ? QString {} : ifaceAddress.toString());
     }
-    // Listen on IPv6 address
-    if (hasKey("listen_on_ipv6_address"))
-        session->setIPv6Enabled(it.value().toBool());
     // Save resume data interval
     if (hasKey("save_resume_data_interval"))
         session->setSaveResumeDataInterval(it.value().toInt());
@@ -688,6 +690,9 @@ void AppController::setPreferencesAction()
     // Coalesce reads & writes
     if (hasKey("enable_coalesce_read_write"))
         session->setCoalesceReadWriteEnabled(it.value().toBool());
+    // Piece extent affinity
+    if (hasKey("enable_piece_extent_affinity"))
+        session->setPieceExtentAffinity(it.value().toBool());
     // Suggest mode
     if (hasKey("enable_upload_suggestions"))
         session->setSuggestMode(it.value().toBool());
@@ -735,6 +740,9 @@ void AppController::setPreferencesAction()
         const QHostAddress announceAddr {it.value().toString().trimmed()};
         session->setAnnounceIP(announceAddr.isNull() ? QString {} : announceAddr.toString());
     }
+    // Stop tracker timeout
+    if (hasKey("stop_tracker_timeout"))
+        session->setStopTrackerTimeout(it.value().toInt());
 
     // Save preferences
     pref->apply();
@@ -762,19 +770,27 @@ void AppController::networkInterfaceListAction()
 
 void AppController::networkInterfaceAddressListAction()
 {
-    checkParams({"iface"});
+    requireParams({"iface"});
 
     const QString ifaceName = params().value("iface");
     QJsonArray addressList;
 
+    const auto appendAddress = [&addressList](const QHostAddress &addr)
+    {
+        if (addr.protocol() == QAbstractSocket::IPv6Protocol)
+            addressList.append(Utils::Net::canonicalIPv6Addr(addr).toString());
+        else
+            addressList.append(addr.toString());
+    };
+
     if (ifaceName.isEmpty()) {
-        for (const QHostAddress &ip : asConst(QNetworkInterface::allAddresses()))
-            addressList.append(ip.toString());
+        for (const QHostAddress &addr : asConst(QNetworkInterface::allAddresses()))
+            appendAddress(addr);
     }
     else {
         const QNetworkInterface iface = QNetworkInterface::interfaceFromName(ifaceName);
         for (const QNetworkAddressEntry &entry : asConst(iface.addressEntries()))
-            addressList.append(entry.ip().toString());
+            appendAddress(entry.ip());
     }
 
     setResult(addressList);
