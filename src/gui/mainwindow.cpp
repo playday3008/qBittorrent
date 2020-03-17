@@ -216,7 +216,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Name filter
     m_searchFilter = new LineEdit(this);
-    m_searchFilter->setPlaceholderText(tr("Filter torrent list..."));
+    m_searchFilter->setPlaceholderText(tr("Filter torrent names..."));
     m_searchFilter->setFixedWidth(Utils::Gui::scaledSize(this, 200));
     m_searchFilter->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_searchFilter, &QWidget::customContextMenuRequested, this, &MainWindow::showFilterContextMenu);
@@ -1525,7 +1525,7 @@ void MainWindow::reloadSessionStats()
 #else
     if (m_systrayIcon) {
 #ifdef Q_OS_UNIX
-        const QString toolTip = QString(QLatin1String(
+        const QString toolTip = QString::fromLatin1(
                 "<div style='background-color: #678db2; color: #fff;height: 18px; font-weight: bold; margin-bottom: 5px;'>"
                 "qBittorrent"
                 "</div>"
@@ -1534,7 +1534,7 @@ void MainWindow::reloadSessionStats()
                 "</div>"
                 "<div style='vertical-align: baseline; height: 18px;'>"
                 "<img src=':/icons/skin/seeding.svg' height='14'/>&nbsp;%2"
-                "</div>"))
+                "</div>")
             .arg(tr("DL speed: %1", "e.g: Download speed: 10 KiB/s").arg(Utils::Misc::friendlyUnit(status.payloadDownloadRate, true))
                  , tr("UP speed: %1", "e.g: Upload speed: 10 KiB/s").arg(Utils::Misc::friendlyUnit(status.payloadUploadRate, true)));
 #else
@@ -1773,14 +1773,14 @@ void MainWindow::on_actionSearchWidget_triggered()
 
 #ifdef Q_OS_WIN
             const QMessageBox::StandardButton buttonPressed = QMessageBox::question(this, tr("Old Python Runtime")
-                , tr("Your Python version (%1) is outdated. Minimum requirement: 2.7.9 / 3.3.0.\nDo you want to install a newer version now?")
+                , tr("Your Python version (%1) is outdated. Minimum requirement: 3.3.0.\nDo you want to install a newer version now?")
                     .arg(pyInfo.version)
                 , (QMessageBox::Yes | QMessageBox::No), QMessageBox::Yes);
             if (buttonPressed == QMessageBox::Yes)
                 installPython();
 #else
             QMessageBox::information(this, tr("Old Python Runtime")
-                , tr("Your Python version (%1) is outdated. Please upgrade to latest version for search engines to work.\nMinimum requirement: 2.7.9 / 3.3.0.")
+                , tr("Your Python version (%1) is outdated. Please upgrade to latest version for search engines to work.\nMinimum requirement: 3.3.0.")
                 .arg(pyInfo.version));
 #endif
             return;
