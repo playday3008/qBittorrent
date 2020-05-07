@@ -36,14 +36,13 @@
 class QObject;
 class QUrl;
 
-class DownloadHandlerImpl : public Net::DownloadHandler
+class DownloadHandlerImpl final : public Net::DownloadHandler
 {
     Q_OBJECT
     Q_DISABLE_COPY(DownloadHandlerImpl)
 
 public:
     DownloadHandlerImpl(Net::DownloadManager *manager, const Net::DownloadRequest &downloadRequest);
-    ~DownloadHandlerImpl() override;
 
     void cancel() override;
 
